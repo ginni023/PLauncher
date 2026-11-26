@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  initSql.xml : 테이블/인덱스 구조 변경 SQL (CREATE, DROP, ALTER, INDEX 등)
+  - 런처 시작 시 위에서부터 순서대로 실행된다.
+  - version : 이 DB에 아직 적용되지 않은 version(> PRAGMA user_version)만 실행된다.
+              이미 적용된 항목은 수정하지 말고, 변경 사항은 새 version으로 아래에 추가한다.
+-->
+<sqls>
+
+  <!-- v1 : 최초 테이블 생성 -->
+  <sql id="createTestTaskList" version="1" type="C"><![CDATA[
+    -- 작업 테이블 (런처에서의 모든 작업이 저장된다)
+    CREATE TABLE IF NOT EXISTS TEST_TASK_LIST (
+        TASK_ID          VARCHAR NOT NULL,     -- 작업아이디
+        TASK_TYPE        VARCHAR NOT NULL,     -- 작업 타입 (STANDARD / VALIDATION / RESERVATION)
+        DTL_TYPE         VARCHAR,              -- 작업 TOOL 작동 방식 (RECORD / STANDARD / PLAYWRIGHT)
+        DEVICE           VARCHAR DEFAULT 'PC', -- UI 테스트 장치
+        SYS_RECD_CRET_DT VARCHAR NOT NULL,     -- 작업등록일(시간)
+        TASK_ADR         VARCHAR NOT NULL,     -- 주소
+        TEST_STATUS      VARCHAR NOT NULL,     -- 작업 상태 (RDY / WRK / CMP)
+        TEST_RESULT      VARCHAR,              -- 작업 결과
+        ERR_MSG          VARCHAR,              -- 에러메시지
+        RUN_DATE         VARCHAR,              -- 작업일(시간)
+        REQ_PROD_SEQ     VARCHAR,              -- 수행 SR
+        EXE_CD           VARCHAR,              -- 수행 INST NUMBER
+        PREF_RANK        VARCHAR,              -- 수행 INST 순서
+        CHORD_ID         VARCHAR,              -- CHORD ID
+        CHORD_NM         VARCHAR,              -- CHORD 명
+        CHORD_TYPE       VARCHAR,              -- CHORD 타입
+        CHORD_SBST       VARCHAR,              -- CHORD 상세정보
+        RESERVE_DATE     VARCHAR,              -- 예약일(시간) (구 START_DATE)
+        RESOURCE         VARCHAR,              --
+        SYS_TRTR_ID      VARCHAR,              -- 수행인
+        PRIMARY KEY (TASK_ID)
+    );
+    CREATE INDEX IF NOT EXISTS TEST_TASK_LIST_1IDX ON TEST_TASK_LIST (TASK_TYPE, TASK_ADR);
+    CREATE UNIQUE INDEX IF NOT EXISTS TEST_TASK_LIST_2IDX ON TEST_TASK_LIST (TASK_ID);
+  ]]></sql>
+
+  <sql id="createTestTaskDtl" version="1" type="C"><![CDATA[
+    -- 작업 동작 테이블 (작업에서 필요한 테스트 동작들이 저장된다, TEST_TASK_LIST의 자식)
+    CREATE TABLE IF NOT EXISTS TEST_TASK_DTL (
+        TASK_ID      VARCHAR NOT NULL,           -- 작업아이디 (FK)
+        DATA_SEQ     INTEGER NOT NULL DEFAULT 0, -- 작업 SEQ (반복 수행 시)
+        ACT_TYPE     VARCHAR NOT NULL,           -- 동작 타입
+        ACT_RESULT   VARCHAR,                    -- 동작 결과
+        ACT_STATE    VARCHAR NOT NULL,           -- 동작 상태
+        ELM_ID       VARCHAR,                    -- HTML ELEMENT 아이디
+        INPUT_VALUE  VARCHAR,                    -- INPUT 값
+        DELAY_TIME   INTEGER DEFAULT 2,          -- 지연 시간(초)
+        CAPTURE_IND  VARCHAR,                    -- 캡처 여부
+        ACT_SBST     VARCHAR,                    -- 동작 상세설명
+        ACT_NO       INTEGER NOT NULL,           -- 동작 순서
+        ACT_RST_SBST VARCHAR,                    -- 동작 결과 상세
+        ELM_TAG      VARCHAR,                    -- HTML ELEMENT TAG
+        ELM_NM       VARCHAR,                    -- HTML ELEMENT NAME
+        ELM_TYPE     VARCHAR,                    -- HTML ELEMENT TYPE / XPATH
+        ELM_SEQ      VARCHAR,                    -- HTML ELEMENT SEQ
+        ELM_CLASS    VARCHAR,                    -- HTML ELEMENT CLASS
+        INNER_TEXT   VARCHAR,                    -- HTML ELEMENT INNERTEXT
+        ERROR_CLASS  VARCHAR,                    -- 에러 CLASS
+        ERROR_MSG    VARCHAR,                    -- 에러 메시지
+        PAGE_NO      VARCHAR,                    -- 화면 번호
+        TARGET       VARCHAR,                    -- 화면 아이디 (MAIN, ...)
+        FOREIGN KEY (TASK_ID) REFERENCES TEST_TASK_LIST (TASK_ID)
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS TEST_TASK_DTL_1IDX ON TEST_TASK_DTL (TASK_ID, DATA_SEQ, ACT_NO);
+  ]]></sql>
+
+  <sql id="createTestCommList" version="1" type="C"><![CDATA[
+    -- 공통 테이블 (런처에서 필요한 정보들이 저장된다)
+    CREATE TABLE IF NOT EXISTS TEST_COMM_LIST (
+        META_KEY         VARCHAR,  -- KEY 아이디
+        UPR_DIV_KEY      VARCHAR,  -- 구분키/용도
+        SYS_RECD_CRET_DT VARCHAR,  -- 등록일
+        SYS_RECD_CHG_DT  VARCHAR,  -- 수정일
+        DIS_NM           VARCHAR,  -- 제목
+        ALIAS_NM         VARCHAR,  -- 추가 제목
+        META_VALUE       VARCHAR,  -- 값
+        VALUE_DESC       VARCHAR   -- 상세 설명
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS TEST_COMM_LIST_1IDX ON TEST_COMM_LIST (UPR_DIV_KEY, META_KEY);
+  ]]></sql>
+
+</sqls>

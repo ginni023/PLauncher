@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  mainSql.xml : 데이터 변경/조회 SQL (INSERT, UPDATE, DELETE, SELECT 등)
+  - type : S(SELECT) → selectQueryMap, I/U/D(INSERT/UPDATE/DELETE) → executeQueryMap
+           런처 시작 시 DatabaseUtil.initMappingQuery() 가 읽는다. type 이 없거나 다르면 시작 오류.
+  - 코드에서 id로 불러 사용한다: DatabaseUtil.selectRows("아이디", 값) / DatabaseUtil.executeUpdate("아이디", 값)
+  - 바인드 변수는 콜론 하나 + 영문 소문자로 시작한다. 예) WHERE TASK_ID = :task_Id
+-->
+<sqls>
+
+  <sql id="insertTestTask" type="I"><![CDATA[
+    INSERT INTO TEST_TASK_LIST (
+        TASK_ID, TASK_TYPE, DTL_TYPE, DEVICE, SYS_RECD_CRET_DT,
+        TASK_ADR, TEST_STATUS, TEST_RESULT, ERR_MSG, RUN_DATE,
+        REQ_PROD_SEQ, EXE_CD, PREF_RANK, CHORD_ID, CHORD_NM,
+        CHORD_TYPE, CHORD_SBST, RESERVE_DATE, RESOURCE, SYS_TRTR_ID
+    ) VALUES (
+        :task_Id, :task_Type, :dtl_Type, :device, :sys_Recd_Cret_Dt,
+        :task_Adr, :test_Status, :test_Result, :err_Msg, :run_Date,
+        :req_Prod_Seq, :exe_Cd, :pref_Rank, :chord_Id, :chord_Nm,
+        :chord_Type, :chord_Sbst, :reserve_Date, :resource, :sys_Trtr_Id
+    )
+  ]]></sql>
+
+  <sql id="updateTestTaskStatus" type="U"><![CDATA[
+    UPDATE TEST_TASK_LIST
+       SET TEST_STATUS = :test_Status,
+           TEST_RESULT = :test_Result,
+           ERR_MSG     = :err_Msg,
+           RUN_DATE    = :run_Date
+     WHERE TASK_ID = :task_Id
+  ]]></sql>
+
+  <sql id="selectTaskList" type="S"><![CDATA[
+    SELECT *
+      FROM TEST_TASK_LIST
+     WHERE TASK_TYPE <> 'RESERVATION'
+     ORDER BY SYS_RECD_CRET_DT DESC, TASK_ID DESC
+  ]]></sql>
+
+  <sql id="selectReservationList" type="S"><![CDATA[
+    SELECT *
+      FROM TEST_TASK_LIST
+     WHERE TASK_TYPE = 'RESERVATION'
+     ORDER BY SYS_RECD_CRET_DT DESC, TASK_ID DESC
+  ]]></sql>
+
+  <sql id="selectReadyTaskList" type="S"><![CDATA[
+    SELECT *
+      FROM TEST_TASK_LIST
+     WHERE TASK_TYPE <> 'RESERVATION'
+       AND TEST_STATUS = 'RDY'
+     ORDER BY SYS_RECD_CRET_DT, TASK_ID
+  ]]></sql>
+
+  <sql id="selectPendingReservationList" type="S"><![CDATA[
+    SELECT *
+      FROM TEST_TASK_LIST
+     WHERE TASK_TYPE = 'RESERVATION'
+       AND TEST_STATUS IN ('RDY', 'WAIT')
+     ORDER BY RESERVE_DATE, TASK_ID
+  ]]></sql>
+
+  <sql id="selectTestInfoList" type="S"><![CDATA[
+    SELECT *
+      FROM TEST_TASK_DTL
+     WHERE TASK_ID = :task_Id
+     ORDER BY DATA_SEQ, ACT_NO
+  ]]></sql>
+
+</sqls>
