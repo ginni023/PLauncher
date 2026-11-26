@@ -357,6 +357,9 @@ SQL은 Python 코드에 직접 쓰지 않고 XML 파일에 작성한다. 두 파
   - 그대로 둔 것: 실행 파일 `KTOPIA.exe`, 창·트레이 이름 "K-TOPIA Launcher", 웹 실행 주소 `ktopia://`, `ktopia.db`·`ktopia.log`, 클래스 이름 `KtopiaLauncher`, 개발 이력 속 당시 경로
   - 코드는 폴더 이름을 쓰지 않아 수정 없음. `config.properties` 경로와 `ktopia://` 레지스트리 등록은 새 위치에서 처음 실행할 때 자동으로 다시 잡힌다
   - 설계서 5.6 설정 화면 그림이 뒤섞여 있던 것(Playwright 경로·캡처 저장 경로 줄)을 원래 순서로 복구
+- **GitHub 저장소 첫 커밋:** https://github.com/ginni023/PLauncher (`main` 브랜치, 첫 커밋 `b8c3c1a`)
+  - `.gitignore`로 제외: `__pycache__`, `build/`·`dist/`·`*.spec`(빌드 결과), `log/`, `config.properties`(PC마다 다름), `resource/db/ktopia.db`(로컬 데이터 — 테이블은 initSql.xml로 다시 생성), 배포 때 넣는 `node/`·`playwright/`·`screenShot/`·`auth/`·`crawl-output/`
+  - `lib/`의 whl(약 37MB, 대부분 Playwright)은 오프라인 설치용이라 저장소에 포함
 
 ## 다음 할 일
 - [ ] UI TEST 실행 구현: 런처 폴더의 Node.js(`NODEJS_PATH`) + `@playwright/test`로 웹에서 받은 TypeScript 소스 실행, 결과를 TEST_TASK_DTL에 기록
