@@ -1,4 +1,4 @@
-# TestInfoDTO
+# TestTaskDtlDTO
 
 **TEST_TASK_DTL 대응 객체**
 
@@ -15,4 +15,4 @@
 | `fromRow(oRow) [static]` | sqlite3.Row → 객체 |
 | `toParams()` | {바인드 변수명: 값} |
 
-소스: [src/main/dto/TestInfoDTO.py](../../../src/main/dto/TestInfoDTO.py)
+소스: [src/main/dto/TestTaskDtlDTO.py](../../../src/main/dto/TestTaskDtlDTO.py)

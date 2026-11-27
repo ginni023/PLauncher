@@ -1,4 +1,4 @@
-class TestInfoDTO:
+class TestTaskDtlDTO:
 
 	TABLE_NAME = "TEST_TASK_DTL"
 	COLUMNS = (
@@ -52,9 +52,9 @@ class TestInfoDTO:
 
 	@staticmethod
 	def fromRow(oRow):
-		oDto = TestInfoDTO()
+		oDto = TestTaskDtlDTO()
 		lstKeys = oRow.keys()
-		for arrColumn in TestInfoDTO.COLUMNS:
+		for arrColumn in TestTaskDtlDTO.COLUMNS:
 			if arrColumn[0] in lstKeys:
 				fnSetter = getattr(oDto, arrColumn[3])
 				fnSetter(oRow[arrColumn[0]])
@@ -260,7 +260,7 @@ class TestInfoDTO:
 
 	def toParams(self):
 		mapParams = {}
-		for arrColumn in TestInfoDTO.COLUMNS:
+		for arrColumn in TestTaskDtlDTO.COLUMNS:
 			fnGetter = getattr(self, arrColumn[2])
 			mapParams[arrColumn[1]] = fnGetter()
 		return mapParams

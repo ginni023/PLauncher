@@ -16,6 +16,7 @@ class ConfigDialog(ChildDialog):
 	TITLE = "설정"
 	WIDTH = 600
 	HEIGHT = 470
+	SECRET_MASK = "*"
 	ENTRY_WIDTH = 46
 	CHECK_TIME_MIN = 1
 	CHECK_TIME_MAX = 1440
@@ -29,8 +30,8 @@ class ConfigDialog(ChildDialog):
 	MESSAGE_APPLIED = "설정이 적용되었습니다."
 	MESSAGE_AUTH_OK = "인증되었습니다."
 	MESSAGE_AUTH_FAIL = "인증에 실패했습니다."
-	MESSAGE_AUTH_EMPTY = "인증 아이디를 입력하세요."
-	MESSAGE_AUTH_NEEDED = "인증 아이디를 바꾸면 인증 후에 적용할 수 있습니다."
+	MESSAGE_AUTH_EMPTY = "API 토큰을 입력하세요."
+	MESSAGE_AUTH_NEEDED = "API 토큰을 바꾸면 인증 후에 적용할 수 있습니다."
 	MESSAGE_INVALID_CHECK_TIME = "예약 체크 타임은 1 이상의 숫자로 입력하세요."
 
 	LABELS = (
@@ -38,7 +39,7 @@ class ConfigDialog(ChildDialog):
 		(LauncherConfig.INSTALL_PATH, "설치 경로"),
 		(LauncherConfig.LINK_REGST_IND, "웹에서 런처 실행"),
 		(LauncherConfig.RESERVATION_USE, "예약 기능"),
-		(LauncherConfig.DEV_TRTR_ID, "인증 아이디"),
+		(LauncherConfig.API_TOKEN, "API 토큰"),
 		(LauncherConfig.NODEJS_PATH, "Node.js 경로"),
 		(LauncherConfig.PLAYWRIGHT_PATH, "Playwright 경로"),
 		(LauncherConfig.MINIMIZE_IND, "최소화(HEADLESS)"),
@@ -51,7 +52,7 @@ class ConfigDialog(ChildDialog):
 		self.m_oLauncher = oLauncher
 		self.m_oConfig = oLauncher.getConfig()
 		self.m_mapOriginal = self.m_oConfig.copyValues()
-		self.m_strAuthedTrtrId = self.m_mapOriginal.get(LauncherConfig.DEV_TRTR_ID, "")
+		self.m_strAuthedToken = self.m_mapOriginal.get(LauncherConfig.API_TOKEN, "")
 		self.m_mapVars = {}
 		self.m_oAuthStateVar = tk.StringVar(self)
 		self.m_oMessageVar = tk.StringVar(self)
@@ -92,7 +93,9 @@ class ConfigDialog(ChildDialog):
 			oWidget.grid(row=nRow, column=1, sticky=tk.EW)
 			if strKey in LauncherConfig.AUTO_PATH_KEYS:
 				oWidget.configure(state="readonly")
-		if strKey == LauncherConfig.DEV_TRTR_ID:
+			if strKey in LauncherConfig.SECRET_KEYS:
+				oWidget.configure(show=ConfigDialog.SECRET_MASK)
+		if strKey == LauncherConfig.API_TOKEN:
 			oAuthFrame = ttk.Frame(oFrame)
 			oAuthFrame.grid(row=nRow, column=2, sticky=tk.W, padx=(6, 0))
 			oAuthButton = UiTheme.createButton(oAuthFrame, ConfigDialog.BUTTON_AUTH, UiTheme.BUTTON_OUTLINE_PRIMARY,
@@ -136,10 +139,10 @@ class ConfigDialog(ChildDialog):
 	def _updateState(self):
 		mapCurrent = self._collectValues()
 		bChanged = mapCurrent != self.m_mapOriginal
-		strTrtrId = mapCurrent[LauncherConfig.DEV_TRTR_ID]
-		bAuthOk = StringUtil.isEmpty(strTrtrId) or strTrtrId == self.m_strAuthedTrtrId
+		strToken = mapCurrent[LauncherConfig.API_TOKEN]
+		bAuthOk = StringUtil.isEmpty(strToken) or strToken == self.m_strAuthedToken
 		bCheckTimeOk = StringUtil.isPositiveInteger(mapCurrent[LauncherConfig.RESERVATION_CHECK_TIME])
-		if StringUtil.isEmpty(strTrtrId):
+		if StringUtil.isEmpty(strToken):
 			self.m_oAuthStateVar.set("")
 		elif bAuthOk:
 			self.m_oAuthStateVar.set(ConfigDialog.AUTH_STATE_OK)
@@ -156,13 +159,13 @@ class ConfigDialog(ChildDialog):
 
 	def _onAuthenticate(self):
 		mapCurrent = self._collectValues()
-		strTrtrId = mapCurrent[LauncherConfig.DEV_TRTR_ID]
-		if StringUtil.isEmpty(strTrtrId):
+		strToken = mapCurrent[LauncherConfig.API_TOKEN]
+		if StringUtil.isEmpty(strToken):
 			self.m_oMessageVar.set(ConfigDialog.MESSAGE_AUTH_EMPTY)
 			return
-		bAuthenticated = SystemApiClient.authenticate(mapCurrent[LauncherConfig.RESERVATION_SYSTEM], strTrtrId)
+		bAuthenticated = SystemApiClient.authenticate(mapCurrent[LauncherConfig.RESERVATION_SYSTEM], strToken)
 		if bAuthenticated:
-			self.m_strAuthedTrtrId = strTrtrId
+			self.m_strAuthedToken = strToken
 		self._updateState()
 		if bAuthenticated:
 			self.m_oMessageVar.set(ConfigDialog.MESSAGE_AUTH_OK)

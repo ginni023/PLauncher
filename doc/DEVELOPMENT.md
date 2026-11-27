@@ -18,13 +18,16 @@
   - 시작 시 폴더·파일·테이블이 없으면 자동 생성, 연결마다 외래키 활성화
 - **설정 파일:** `config.properties` (실행 파일과 같은 폴더)
 - **로그:** `log\ktopia.log` (실행 파일과 같은 폴더, 5MB × 5개 순환)
-- **현재 버전:** 0.1.0
+- **현재 버전:** 1.0 — 프로젝트 루트의 `.launcher` 파일에 저장 (빌드 시 `dist\`로 복사, 런처가 시작할 때 읽음)
 
 ## 폴더 구조
 ```
 PLauncher/                         # 프로젝트 폴더 (D:\PLauncher, 가칭 — 이름 확정 시 다시 변경)
 ├─ main.py                         # 시작점: src/main을 import 경로에 넣고 KtopiaLauncher 실행
-├─ build.bat                       # exe 빌드 스크립트 (+ XML을 dist로 복사)
+├─ build.bat                       # exe 빌드 스크립트 (+ .launcher·crawler.properties·XML을 dist로 복사)
+├─ .launcher                       # 런처 버전 (현재 1.0)
+├─ crawler.properties              # 크롤러 엔진 설정 (PC마다 다름 — git 제외)
+├─ .vscode/launch.json             # VS Code 디버그 실행 방식
 ├─ src/main/                       # 소스 (import 기준 경로)
 │  ├─ KtopiaLauncher.py            # 전체 조립: 중복 실행 방지, 설정, DB, 작업관리, 트레이, 메인 UI
 │  ├─ engine/                      # 런처 기반 — 웹 실행 주소, 설정, 시스템 서버 연동
@@ -33,24 +36,24 @@ PLauncher/                         # 프로젝트 폴더 (D:\PLauncher, 가칭 �
 │  │  ├─ SingleInstanceServer.py   #   중복 실행 방지, 두 번째 실행의 주소를 기존 런처로 전달
 │  │  ├─ LauncherConfig.py         #   config.properties 관리, 런처 버전
 │  │  ├─ LauncherEnvironment.py    #   Node.js·Playwright 설치 확인
-│  │  └─ SystemApiClient.py        #   시스템 도메인 API (버전, 예약 조회, 인증) — 현재 임시 구현
+│  │  └─ SystemApiClient.py        #   서버 API: 서버 정보(getServerData, Bearer 토큰) — 버전·예약 조회·인증은 임시 구현
 │  ├─ task/                        # 작업 관리
 │  │  ├─ ManageTestTaskList.py     #   기본/예약 QUEUE, INTERRUPT FLAG, startTask()
 │  │  ├─ ReservationScheduler.py   #   예약 시간 확인, 예약 API 주기 조회
 │  │  ├─ TaskRunner.py             #   작업 타입별 실행기 선택
-│  │  └─ code/                     #   코드값: TaskStatus, TaskType, DtlType
+│  │  └─ code/                     #   코드값: TaskStatus, TaskType, DtlType, TaskResult(Y/N)
 │  ├─ runner/                      # 실행기
 │  │  ├─ UiTestRunner.py           #   UI TEST(Playwright) — 현재 임시 구현
-│  │  └─ CrawlingRunner.py         #   크롤링 — 현재 임시 구현
+│  │  └─ CrawlingRunner.py         #   크롤링 — whl crawling 패키지의 CrawlerEngine 사용 (결과 보내기는 임시)
 │  ├─ ui/                          # 화면
 │  │  ├─ dialog/                   #   창: WorkDialog(메인), ChildDialog(모달 공통), TaskHistoryDialog(목록 공통),
-│  │  │                            #       TaskListDialog, ReservationListDialog, ErrorDialog, ConfigDialog
+│  │  │                            #       TaskListDialog, ReservationListDialog, ErrorDialog, ConfigDialog, LoginGuideDialog
 │  │  ├─ TrayIcon.py               #   트레이
 │  │  ├─ IconFactory.py            #   창·트레이 아이콘
 │  │  ├─ UiAction.py               #   UI 요청 종류
 │  │  └─ UiTheme.py                #   테마·글꼴·상태 색 규칙
-│  ├─ dto/                         # 객체: TestTaskDTO, TestInfoDTO
-│  ├─ database/                    # DB: DatabaseUtil, TestTaskDAO, TestInfoDAO
+│  ├─ dto/                         # 객체: TestTaskDTO, TestTaskDtlDTO, TestCommDTO
+│  ├─ database/                    # DB: DatabaseUtil, TestTaskDAO, TestTaskDtlDAO, TestCommDAO
 │  ├─ util/                        # 공통: Util(makeTaskId), PathUtil, StringUtil, DateUtil, LogUtil, PropertiesUtil
 │  └─ secure/                      # 보안 (비어 있음 — 인증·암호화가 생기면 사용)
 ├─ lib/                           # 설치용 Python 패키지 원본(whl) — 실행 중에 읽지 않음, 배포 폴더에 넣지 않음
@@ -76,9 +79,14 @@ PLauncher/                         # 프로젝트 폴더 (D:\PLauncher, 가칭 �
 
 ## 실행 / 빌드 방법
 - 소스로 실행: `python main.py` (또는 `python main.py "ktopia://start?..."`)
+- **디버깅 (VS Code):** Python 확장 + 인터프리터 Python 3.12.10 선택 → 실행 및 디버그(`Ctrl+Shift+D`)에서 실행 방식 선택 후 F5
+  - 실행 방식(`.vscode/launch.json`): 그냥 실행 / CRAWLING 주소로 실행 / UI TEST 주소로 실행 / 주소 직접 입력
+  - 디버깅 전에 트레이의 KTOPIA.exe를 종료할 것 (켜져 있으면 디버그 실행이 신호만 보내고 끝남)
+  - 소스 실행 로그: `log\ktopia.log` (실시간 보기: `Get-Content log\ktopia.log -Wait -Tail 50 -Encoding utf8`)
+  - 소스로 실행하면 `ktopia://` 레지스트리 등록이 `pythonw main.py`로 바뀜 → exe로 되돌리려면 `dist\KTOPIA.exe`를 한 번 실행
 - exe 빌드: `build.bat` 실행 → `dist\KTOPIA.exe` 생성
-  - 옵션: `--onefile --noconsole --name KTOPIA --paths src\main --hidden-import pystray._win32`
-  - `resource\db\initSql.xml`, `mainSql.xml`을 `dist\resource\db\`로 복사
+  - 옵션: `--onefile --noconsole --name KTOPIA --paths src\main --hidden-import pystray._win32 --collect-all crawling --collect-all playwright` (크롤러·Playwright 드라이버 포함, 약 59MB)
+  - `.launcher`, `crawler.properties`를 `dist\`로, `resource\db\initSql.xml`, `mainSql.xml`을 `dist\resource\db\`로 복사
   - XML만 고친 경우: 재빌드 없이 `dist\resource\db\`의 XML만 바꿔도 됨
 - 필요한 패키지: `pip install pyinstaller pystray pillow ttkbootstrap`
 - 크롤러 패키지 (인터넷 없이 `lib\`에서 설치):
@@ -114,6 +122,7 @@ SQL은 Python 코드에 직접 쓰지 않고 XML 파일에 작성한다. 두 파
 - initSql.xml의 SQL은 systemQueryMap에 담긴다
 - 바인드 변수는 **콜론 하나 + 영문 소문자로 시작**, 컬럼명 모양을 따른다: `TASK_ID` → `:task_Id`, `SYS_RECD_CRET_DT` → `:sys_Recd_Cret_Dt`
 - DTO의 `toParams()`가 이 이름으로 값을 만들어 준다.
+- **SELECT는 `*`를 쓰지 않고 컬럼을 모두 적는다** (테이블 정의 순서)
 - 현재 등록된 SQL
 
 | id | type | 내용 |
@@ -124,7 +133,14 @@ SQL은 Python 코드에 직접 쓰지 않고 XML 파일에 작성한다. 두 파
 | `selectReservationList` | S | 예약 작업 전체, 최근 등록순 |
 | `selectReadyTaskList` | S | 예약이 아닌 RDY 작업, 등록 오래된 순 (init 5단계) |
 | `selectPendingReservationList` | S | RDY·WAIT 예약 작업, 예약일시 순 (init 6단계) |
-| `selectTestInfoList` | S | 작업의 동작 목록 (TASK_ID, DATA_SEQ·ACT_NO 순) |
+| `selectTestTaskDtlList` | S | 작업의 동작 목록 (TASK_ID, DATA_SEQ·ACT_NO 순) |
+| `selectTestTaskDtl` | S | 동작 1건 (TASK_ID + DATA_SEQ + ACT_NO) |
+| `insertTestTaskDtl` | I | 동작 등록 (TEST_TASK_DTL 전체 컬럼) |
+| `updateTestTaskDtlResult` | U | 동작 결과·상태·결과 상세·에러 CLASS·에러 메시지 변경, 조건 TASK_ID + DATA_SEQ + ACT_NO |
+| `insertTestComm` | I | 공통 정보 등록 (SYS_RECD_CHG_DT 제외 — 수정일은 updateTestComm에서만) |
+| `updateTestComm` | U | 공통 정보 수정 (수정일·제목·추가 제목·값·상세 설명), 조건 UPR_DIV_KEY + META_KEY |
+| `selectTestCommList` | S | 구분키(UPR_DIV_KEY)의 공통 정보 목록, META_KEY 순 |
+| `selectTestComm` | S | 공통 정보 1건 (UPR_DIV_KEY + META_KEY) |
 
 ## DB 스키마 (`ktopia.db`)
 정의 위치: [resource/db/initSql.xml](../resource/db/initSql.xml)
@@ -156,9 +172,9 @@ SQL은 Python 코드에 직접 쓰지 않고 XML 파일에 작성한다. 두 파
 | CHORD_SBST | VARCHAR | m_strChordSbst | CHORD 상세정보 |
 | RESERVE_DATE | VARCHAR | m_strReserveDate | 예약일(시간) (구 START_DATE) |
 | RESOURCE | VARCHAR | m_strResource | (설명 미정) |
-| SYS_TRTR_ID | VARCHAR | m_strSysTrtrId | 수행인 (설정의 인증 아이디) |
+| SYS_TRTR_ID | VARCHAR | m_strSysTrtrId | 수행인 (지금은 저장하지 않음 — 설정의 인증 아이디 삭제) |
 
-### TEST_TASK_DTL — 작업 동작 테이블 (객체: TestInfoDTO)
+### TEST_TASK_DTL — 작업 동작 테이블 (객체: TestTaskDtlDTO)
 작업에서 필요한 테스트 동작들이 저장된다. TEST_TASK_LIST의 자식 테이블.
 - **FK:** TASK_ID → TEST_TASK_LIST(TASK_ID)
 - **NOT NULL:** TASK_ID, DATA_SEQ, ACT_NO, ACT_TYPE, ACT_STATE
@@ -191,20 +207,20 @@ SQL은 Python 코드에 직접 쓰지 않고 XML 파일에 작성한다. 두 파
 
 - STEP_SEQ는 정의서의 "삭제할 것 → ACT_NO로 통합"에 따라 만들지 않음
 
-### TEST_COMM_LIST — 공통 테이블
-런처에서 필요한 정보들이 저장된다. (대응 객체는 아직 없음)
+### TEST_COMM_LIST — 공통 테이블 (객체: TestCommDTO)
+런처에서 필요한 정보들이 저장된다.
 - **INDEX:** `TEST_COMM_LIST_1IDX` (UPR_DIV_KEY, META_KEY) UNIQUE
 
-| 컬럼 | 타입 | 설명 |
-|---|---|---|
-| META_KEY | VARCHAR | KEY 아이디 |
-| UPR_DIV_KEY | VARCHAR | 구분키/용도 |
-| SYS_RECD_CRET_DT | VARCHAR | 등록일 |
-| SYS_RECD_CHG_DT | VARCHAR | 수정일 |
-| DIS_NM | VARCHAR | 제목 |
-| ALIAS_NM | VARCHAR | 추가 제목 |
-| META_VALUE | VARCHAR | 값 |
-| VALUE_DESC | VARCHAR | 상세 설명 |
+| 컬럼 | 타입 | 멤버변수 | 설명 |
+|---|---|---|---|
+| META_KEY | VARCHAR | m_strMetaKey | KEY 아이디 |
+| UPR_DIV_KEY | VARCHAR | m_strUprDivKey | 구분키/용도 |
+| SYS_RECD_CRET_DT | VARCHAR | m_strSysRecdCretDt | 등록일 |
+| SYS_RECD_CHG_DT | VARCHAR | m_strSysRecdChgDt | 수정일 |
+| DIS_NM | VARCHAR | m_strDisNm | 제목 |
+| ALIAS_NM | VARCHAR | m_strAliasNm | 추가 제목 |
+| META_VALUE | VARCHAR | m_strMetaValue | 값 |
+| VALUE_DESC | VARCHAR | m_strValueDesc | 상세 설명 |
 
 ## 명세 해석 / 임시 결정 사항
 사용자 확인 전까지 아래 기본안으로 구현했다. 확정되면 이 표를 고친다.
@@ -215,7 +231,13 @@ SQL은 Python 코드에 직접 쓰지 않고 XML 파일에 작성한다. 두 파
 | 주소 파싱 | **확정:** 첫 `?` 다음부터, `&`로 나누고 각 조각을 첫 `=`로 나눔, 값만 디코딩 (`LaunchUrlParser.parseParams`) |
 | Windows가 넣는 `start/?` | **확정:** 저장할 때 `/`를 빼서 `start?`로 되돌림 |
 | `mode=CRAWLING` | **확정:** TASK_TYPE=CRAWLING, 크롤링 실행기 사용 |
-| `systemId` 등 그 밖의 파라미터 | 컬럼에 따로 저장하지 않음 (TASK_ADR에서 `parseParams`로 꺼내 씀) |
+| `systemId` | CHORD_ID (CRAWLING 필수). 그 밖의 파라미터는 컬럼에 저장하지 않음 (TASK_ADR에서 `parseParams`로 꺼내 씀) |
+| 서버 정보 API | `POST {domain}/api/launcher/getServerData`, 요청 `{systemId, type}`, 응답 키 `systemNm`·`systemUrl`(필수)·`loginYn` — 서버 미구현이라 런처가 먼저 정함 |
+| 크롤링 실패 상태 | 서버 API 통신 실패 → N·ERR (확정), 로그인·크롤링 실패 → N·FAIL |
+| 로그인 안내 창 | 항상 위, X(닫기)도 [확인]과 같음, 로그인이 끝나면 자동으로 닫힘 |
+| API 토큰 전송 | `Authorization: Bearer <토큰>` |
+| 설정 [인증] | API 토큰으로 인증. 서버 인증 API가 없어 **임시로 토큰이 비어 있지 않으면 성공** (서버 생기면 연결) |
+| SYS_TRTR_ID(수행인) | 인증 아이디 삭제로 지금은 저장하지 않음 |
 | `chordToken` 저장 위치 | CHORD_ID |
 | UITEST 작업의 DTL_TYPE | PLAYWRIGHT |
 | TASK_ID 생성 규칙 | **확정:** `Util.makeTaskId()` = `yyyyMMddHHmmss` + 순번(런처 시작 시 1000부터 1씩 증가), 예: `202611261839261000` |
@@ -262,8 +284,8 @@ SQL은 Python 코드에 직접 쓰지 않고 XML 파일에 작성한다. 두 파
   - 클래스당 파일 1개(파일명 = 클래스명), 람다·메서드 체이닝 금지, 소스 주석 없이 `doc/spec/<클래스명>.md`에 명세
   - 예외는 경계(작업 1건 실행, UI 이벤트, 스레드 루프, 시작점)에서 받아 처리
   - 기존 `db.py` → `DatabaseUtil.py`, 기존 화면 골격(`main.py`의 Launcher) → `WorkDialog.py` 등으로 재작성
-- **객체:** `TestTaskDTO`, `TestInfoDTO` — 컬럼별 멤버변수(`m_strTaskId`, `m_nActNo`)와 get/set 함수
-- **DB 접근:** `TestTaskDAO`, `TestInfoDAO`, mainSql.xml에 SQL 5개 추가 (바인드 변수 `:task_Id` 형식)
+- **객체:** `TestTaskDTO`, `TestTaskDtlDTO` — 컬럼별 멤버변수(`m_strTaskId`, `m_nActNo`)와 get/set 함수
+- **DB 접근:** `TestTaskDAO`, `TestTaskDtlDAO`, mainSql.xml에 SQL 5개 추가 (바인드 변수 `:task_Id` 형식)
 - **실행 방법:** `ktopia://start?...` 레지스트리 등록(`ProtocolRegistry`), 주소 해석(`LaunchUrlParser`), 중복 실행 시 기존 런처로 전달(`SingleInstanceServer`)
   - reqProdSeq·exeSeq·chordId → STANDARD(UI TEST), chordToken → VALIDATION(크롤링)
 - **작업 원리:** `ManageTestTaskList` — 기본/예약 QUEUE 2개, INTERRUPT FLAG, `startTask()`, 한 번에 하나만 실행, 상태 RDY/WAIT/WRK/CMP/FAIL/ERR/STOP
@@ -361,11 +383,55 @@ SQL은 Python 코드에 직접 쓰지 않고 XML 파일에 작성한다. 두 파
   - `.gitignore`로 제외: `__pycache__`, `build/`·`dist/`·`*.spec`(빌드 결과), `log/`, `config.properties`(PC마다 다름), `resource/db/ktopia.db`(로컬 데이터 — 테이블은 initSql.xml로 다시 생성), 배포 때 넣는 `node/`·`playwright/`·`screenShot/`·`auth/`·`crawl-output/`
   - `lib/`의 whl(약 37MB, 대부분 Playwright)은 오프라인 설치용이라 저장소에 포함
 
+### 2026-11-27
+- **VS Code 디버깅 설정 추가:** `.vscode/launch.json` — F5 실행 방식 4개 (그냥 실행 / CRAWLING 주소 / UI TEST 주소 / 주소 직접 입력). 사용법은 "실행 / 빌드 방법" 참고
+  - VS Code Python 확장(Python, Python Debugger, Pylance) 설치 확인
+- **런처 버전을 `.launcher` 파일에서 읽도록 변경:** 버전 상수 `LauncherConfig.LAUNCHER_VERSION`(0.1.0) 삭제 → `LauncherConfig.readLauncherVersion()`
+  - `.launcher` 위치: 실행 파일 기준 폴더 (소스 실행 = 프로젝트 루트, exe = exe 옆). 내용은 버전 문자열만 (현재 `1.0`), 앞뒤 공백·줄바꿈·UTF-8 BOM 무시
+  - 파일이 없으면 init 1단계에서 버전 체크를 건너뛰고 상태 표시에 "버전 파일(.launcher) 없음"
+  - `build.bat`: 빌드 후 `.launcher`를 `dist\`로 복사
+  - 검증: 파일 없음 / `1.0` / 줄바꿈 / BOM 4가지 통과, 기존 기능 검사 통과, exe 로그 `init 1 version : current 1.0`
+- **`TestCommDTO` 추가:** TEST_COMM_LIST 대응 객체 (`src/main/dto/TestCommDTO.py`), TestTaskDTO와 같은 형식 — 컬럼별 `m_strXxx`·get/set, `COLUMNS`, `fromRow()`, `toParams()` (바인드 변수 `:meta_Key` 등)
+  - 명세: [spec/dto/TestCommDTO.md](spec/dto/TestCommDTO.md)
+- **TEST_COMM_LIST SQL 추가 (mainSql.xml):** `insertTestComm`(I), `updateTestComm`(U), `selectTestCommList`(S), `selectTestComm`(S) — 바인드 값은 `TestCommDTO.toParams()` 그대로
+  - 수정·1건 조회 조건은 유니크 인덱스(UPR_DIV_KEY, META_KEY), 등록일(SYS_RECD_CRET_DT)은 수정하지 않음
+  - 검증: 메모리 DB에서 등록 → 수정(1건) → 목록·1건 조회 확인, `initMappingQuery()` 로딩 확인. 아직 부르는 DAO는 없음
+- **mainSql.xml 정리:** 모든 SELECT의 `*`를 컬럼 명시로 변경 (테이블 정의 순서)
+  - 날짜 값은 기존처럼 바인드 변수(`:sys_Recd_Cret_Dt`, `:run_Date` 등)로 넣는다 — SQLite에는 `sysdate()`가 없어서 쓰지 않음
+  - 검증: 임시 DB에서 작업 등록·상태 변경·조회 4종·동작 목록·공통 정보 등록/수정/조회 확인, 기존 기능 검사 통과
+- **TEST_TASK_DTL SQL 추가 (mainSql.xml):** `selectTestTaskDtl`(S), `insertTestTaskDtl`(I), `updateTestTaskDtlResult`(U) — 바인드 값은 `TestTaskDtlDTO.toParams()` 그대로 (객체는 기존 DTO, 컬럼 22개 일치 확인)
+  - 1건 조회·수정 조건은 유니크 인덱스(TASK_ID, DATA_SEQ, ACT_NO)
+  - 검증: 임시 DB에서 동작 2건 등록 → 결과 수정 → 목록·1건 조회 확인, 없는 TASK_ID 등록은 외래키 오류. DAO 함수는 아래 이름 변경 때 추가
+- **TEST_TASK_DTL 이름 정리 (`TestTaskDtl`로 통일):**
+  - 객체 `TestInfoDTO` → `TestTaskDtlDTO` (`src/main/dto/TestTaskDtlDTO.py`), DAO `TestInfoDAO` → `TestTaskDtlDAO` (`src/main/database/TestTaskDtlDAO.py`), 명세 파일도 같이 변경
+  - SQL id: `selectTestInfoList` → `selectTestTaskDtlList`, `selectTestInfo` → `selectTestTaskDtl`, `insertTestInfo` → `insertTestTaskDtl`, `updateTestInfoResult` → `updateTestTaskDtlResult`
+  - `TestTaskDtlDAO`에 함수 추가: `selectTestTaskDtl(oDtl)`(없으면 None), `insertTestTaskDtl(oDtl)`, `updateTestTaskDtlResult(oDtl)` — 기존 `selectTestTaskDtlList(strTaskId)`와 함께 mainSql 4개 모두 사용
+  - WorkDialog·ErrorDialog는 새 DAO 이름으로 변경 (변수 `lstInfos`/`oInfo` → `lstDtls`/`oDtl`)
+  - 검증: 임시 DB에서 DAO로 등록 2건 → 결과 수정 → 목록·1건 조회(없는 건 None), 기존 기능 검사·코드 규칙 점검 통과
+- **크롤링 업무 구현 (CrawlingRunner):** whl `crawling` 패키지의 `CrawlerEngine`을 그대로 사용 (엔진은 만들지 않음)
+  - 주소 `ktopia://start?domain=…&mode=CRAWLING&systemId=…` — `systemId`는 CHORD_ID에 저장, CRAWLING인데 없으면 잘못된 주소
+  - 순서: WRK → `SystemApiClient.getServerData(domain, systemId, type)` → 응답을 멤버변수 map·작업 객체에 저장 → `loginYn` N이면 바로 / Y면 `CrawlerEngine.login()` + **로그인 안내** 창([확인] → 완료) → TEST_COMM_LIST에 시스템 정보 저장(`PL_UI_SYSTEM_INFO`, 있으면 수정) → `CrawlerEngine.crawl()` → 결과 보내기(**지금은 콘솔에 "보내기"만**) → Y·CMP → 다음 업무(startTask)
+  - 서버 API 통신 실패(모든 서버 API)는 결과 N, 상태 ERR — `ManageTestTaskList._runTask` 경계에서 결과 N도 저장. 로그인·크롤링 실패는 N·FAIL
+  - 새 클래스: `TestCommDAO`, `TaskResult`(Y/N), `LoginGuideDialog`. 변경: `SystemApiClient`(getServerData·postJson, JSON POST `/api/launcher/getServerData`), `ManageTestTaskList`(requestLogin·confirmLogin·finishLogin, 이벤트 LOGIN_REQUEST·LOGIN_DONE), `TaskRunner`·`UiTestRunner`(oTaskManager 인자), `LaunchUrlParser`, `KtopiaLauncher`, `WorkDialog`(openLoginGuide·closeLoginGuide)
+  - `crawler.properties`(런처 폴더)로 엔진 설정, `authDir`·`outputDir` 상대 경로는 런처 폴더 기준
+  - `build.bat`: `--collect-all crawling --collect-all playwright` 추가(KTOPIA.exe 약 59MB), 빌드 후 `crawler.properties`를 `dist\`로 복사
+  - 검증: 가짜 서버로 서버 실패 → ERR/N, loginYn N → CMP/Y + 공통정보 등록, loginYn Y → 로그인 안내 확인 → CMP/Y + 공통정보 수정(sessionSaveDt), 크롤링 실패 → FAIL/N, systemUrl 없음 → ERR/N, 실제 CrawlerEngine으로 로컬 페이지 headless 크롤링 → COMPLETED. exe에서도 같은 주소로 끝까지(CMP/Y) 확인. 실제 서버(localhost:8082)는 API가 없어 지금은 ERR/N이 정상
+- **설정: API 토큰 추가, 인증 아이디 삭제**
+  - `API_TOKEN` 추가 — 서버 API 요청 때 `Authorization: Bearer <토큰>` 헤더로 보냄 (비어 있으면 헤더 없음). `SystemApiClient.setAuthToken()`으로 런처 시작·설정 [적용] 때 반영, 로그에는 토큰 값 대신 있음/없음만
+  - 설정 창: "API 토큰" 칸(`*`로 가림) 옆에 [인증] — 토큰을 바꾸면 인증해야 [적용] 가능 (빈 값 허용). `SystemApiClient.authenticate(strDomain, strToken)`은 **임시** (비어 있지 않으면 성공)
+  - 인증 아이디(`DEV_TRTR_ID`) 삭제 — 설정 키·칸 삭제, `LaunchUrlParser.parse(strUrl)` 인자 삭제, 작업의 SYS_TRTR_ID는 지금 저장하지 않음. 기존 config.properties의 `DEV_TRTR_ID` 줄은 다음 저장 때 빠짐
+  - config.properties에 토큰 평문 저장 (암호화는 추후 `secure`)
+  - 검증: 토큰 없음 → 헤더 없음, 저장한 토큰 → `Bearer` 헤더 전송, 토큰 변경 시 인증 전 [적용] 막힘, 예전 설정 파일의 DEV_TRTR_ID 제거, 기존 기능·크롤링 검사 통과
+- `.gitignore`에 `crawler.properties`(PC별 크롤러 설정), `.vscode/settings.json`(개인 VS Code 설정) 추가
+
 ## 다음 할 일
 - [ ] UI TEST 실행 구현: 런처 폴더의 Node.js(`NODEJS_PATH`) + `@playwright/test`로 웹에서 받은 TypeScript 소스 실행, 결과를 TEST_TASK_DTL에 기록
 - [ ] Node.js 배포 방식: 런처 폴더 `node\`에 넣을 Node.js 버전과 넣는 시점(설치 파일에 포함 / 첫 실행 때 시스템 도메인에서 내려받기) 결정
-- [ ] 크롤링 실행 구현: `CrawlingRunner`에서 `crawling.CrawlerEngine` 사용 (설치 완료). 로그인 완료 처리 방식(화면 버튼 / 로그인 창 닫기), 결과·쿠키 저장 위치, exe 빌드 옵션 결정 필요
-- [ ] 시스템 도메인 API 연동: 예약 조회, 인증 (주소·요청·응답 형식 필요)
+- [ ] 크롤링 6단계 결과 보내기: 서버 API `sendCrawlingRslt(strDomain, strRequest)`(결과 json) → `uploadMultiFiles(...)`(결과 파일) — 지금은 콘솔에 "보내기"만
+- [ ] 서버 정보 API `getServerData` 서버 구현 후 경로(`/api/launcher/getServerData`)·요청·응답 키(`systemNm`, `systemUrl`, `loginYn`) 맞추기
+- [ ] 크롤링에서 받은 시스템 이름(CHORD_NM)·URL(CHORD_SBST)을 DB에도 저장할지 (지금은 실행 중 객체에만)
+- [ ] 서버 API 연동: 예약 조회, **API 토큰 인증**(설정 [인증] — 지금은 임시) (주소·요청·응답 형식 필요)
+- [ ] SYS_TRTR_ID(수행인)에 넣을 값 결정 (예: 토큰 인증 결과의 사용자 아이디)
 - [ ] 설치 과정: Node.js·Playwright 자동 설치, 버전 확인·업데이트
 - [ ] DB 관련 개발: 사용자가 다음 차수에 내용 전달 예정
 - [ ] "명세 해석 / 임시 결정 사항" 표의 항목 확정

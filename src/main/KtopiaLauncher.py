@@ -9,6 +9,7 @@ from task.ManageTestTaskList import ManageTestTaskList
 from engine.ProtocolRegistry import ProtocolRegistry
 from task.ReservationScheduler import ReservationScheduler
 from engine.SingleInstanceServer import SingleInstanceServer
+from engine.SystemApiClient import SystemApiClient
 from util.StringUtil import StringUtil
 from task.code.TaskStatus import TaskStatus
 from ui.TrayIcon import TrayIcon
@@ -44,6 +45,7 @@ class KtopiaLauncher:
 			return
 		KtopiaLauncher.LOGGER.info("launcher start : %s", strLaunchUrl)
 		self.m_oConfig.load()
+		self._applyApiToken()
 		DatabaseUtil.initDb()
 		ProtocolRegistry.applyConfig(self.m_oConfig)
 		self.m_oTaskManager = ManageTestTaskList(self.m_oConfig, self.onTaskEvent)
@@ -80,6 +82,7 @@ class KtopiaLauncher:
 		self.postUiAction(UiAction.TASK_EVENT, (strEventType, oTask, strMessage))
 
 	def onConfigApplied(self):
+		self._applyApiToken()
 		self.m_oWorkDialog.setStatusMessage(KtopiaLauncher.MESSAGE_CONFIG_APPLIED)
 
 	def exitApplication(self):
@@ -94,6 +97,9 @@ class KtopiaLauncher:
 		if self.m_oServer is not None:
 			self.m_oServer.stop()
 		self.m_oWorkDialog.destroy()
+
+	def _applyApiToken(self):
+		SystemApiClient.setAuthToken(self.m_oConfig.getValue(LauncherConfig.API_TOKEN))
 
 	def _findLaunchUrl(self):
 		for strArg in self.m_lstArgs:
@@ -130,7 +136,7 @@ class KtopiaLauncher:
 	def _handleLaunchUrl(self, strUrl):
 		self.m_oWorkDialog.showWindow()
 		try:
-			oTask = LaunchUrlParser.parse(strUrl, self.m_oConfig.getValue(LauncherConfig.DEV_TRTR_ID))
+			oTask = LaunchUrlParser.parse(strUrl)
 		except ValueError as oException:
 			KtopiaLauncher.LOGGER.warning("invalid launch url : %s (%s)", strUrl, oException)
 			self.m_oWorkDialog.setStatusMessage(KtopiaLauncher.MESSAGE_INVALID_URL + str(oException), TaskStatus.ERR)
@@ -144,6 +150,10 @@ class KtopiaLauncher:
 		self.m_oWorkDialog.setStatusMessage(strMessage, strStatus)
 		if strEventType == ManageTestTaskList.EVENT_STARTED:
 			self.m_oWorkDialog.displayTask(oTask)
+		elif strEventType == ManageTestTaskList.EVENT_LOGIN_REQUEST:
+			self.m_oWorkDialog.openLoginGuide()
+		elif strEventType == ManageTestTaskList.EVENT_LOGIN_DONE:
+			self.m_oWorkDialog.closeLoginGuide()
 		elif strEventType == ManageTestTaskList.EVENT_FINISHED:
 			if self.m_oWorkDialog.getDisplayedTask() is oTask:
 				self.m_oWorkDialog.refreshDisplayedTask()

@@ -8,7 +8,7 @@
 1. 로그 설정
 2. 인자에서 `ktopia:` 주소 찾기
 3. `SingleInstanceServer.start()` — 실패하면(이미 실행 중) 주소를 기존 런처에 넘기고 종료
-4. 설정 로드 → DB 초기화 → 레지스트리 등록/해제
+4. 설정 로드 → API 토큰 적용(`SystemApiClient.setAuthToken`) → DB 초기화 → 레지스트리 등록/해제
 5. `ManageTestTaskList`, `ReservationScheduler`, `WorkDialog` 생성 → **`WorkDialog.init()`** (버전·쿼리 매핑·Node·Playwright·남은 작업·예약 작업 확인) → `TrayIcon` 시작
 6. 주소가 있으면 작업 등록 요청, 설정 파일을 새로 만들었으면 설정 창 열기 요청
 7. UI 루프 시작
@@ -23,10 +23,10 @@
 | `postUiAction(strAction, oPayload)` | UI 큐에 요청 추가 (모든 스레드에서 호출 가능). strAction은 UiAction 상수 |
 | `onRemoteMessage(strMessage)` | 다른 실행에서 받은 문자열. ktopia 주소면 작업 등록, 아니면 메인 창 열기 |
 | `onTaskEvent(strEventType, oTask, strMessage)` | 작업 관리자 이벤트 → UI 큐 |
-| `onConfigApplied()` | 설정 적용 후 상태표시 갱신 |
+| `onConfigApplied()` | 설정 적용 후 API 토큰 다시 적용, 상태표시 갱신 |
 | `exitApplication()` | 작업 중지(STOP 저장), 스케줄러·트레이·서버 정지, 창 닫기 |
 | `_handleLaunchUrl(strUrl)` | 메인 창을 띄우고 주소를 해석해 작업 등록. 잘못된 주소는 상태표시에 안내 (경계) |
-| `_handleTaskEvent(...)` | 상태표시 갱신, STARTED면 메인 화면에 작업 표시, 열린 자식 Dialog 갱신 |
+| `_handleTaskEvent(...)` | 상태표시 갱신, STARTED면 메인 화면에 작업 표시, LOGIN_REQUEST면 로그인 안내 창 열기, LOGIN_DONE이면 닫기, 열린 자식 Dialog 갱신 |
 
 ## 참고
 

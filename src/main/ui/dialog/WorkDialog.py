@@ -13,12 +13,13 @@ from engine.SystemApiClient import SystemApiClient
 from task.code.TaskStatus import TaskStatus
 from ui.dialog.ConfigDialog import ConfigDialog
 from ui.dialog.ErrorDialog import ErrorDialog
+from ui.dialog.LoginGuideDialog import LoginGuideDialog
 from ui.IconFactory import IconFactory
 from ui.dialog.ReservationListDialog import ReservationListDialog
 from ui.UiTheme import UiTheme
 from util.StringUtil import StringUtil
 from ui.dialog.TaskListDialog import TaskListDialog
-from database.TestInfoDAO import TestInfoDAO
+from database.TestTaskDtlDAO import TestTaskDtlDAO
 
 
 class WorkDialog(tb.Window):
@@ -40,6 +41,7 @@ class WorkDialog(tb.Window):
 	STATUS_READY = "대기 중"
 	INIT_DONE = "초기화 완료"
 	INIT_NEW_VERSION = "새 버전 있음 : "
+	INIT_NO_VERSION = "버전 파일(.launcher) 없음"
 	INIT_NO_NODE = "Node.js 없음"
 	INIT_NO_PLAYWRIGHT = "Playwright 없음"
 	INIT_SEPARATOR = ", "
@@ -58,6 +60,7 @@ class WorkDialog(tb.Window):
 		self.m_oLauncher = oLauncher
 		self.m_oDisplayedTask = None
 		self.m_oActiveDialog = None
+		self.m_oLoginDialog = None
 		self.m_oIconImage = None
 		self.m_oTestNameVar = tk.StringVar(self)
 		self.m_oStatusVar = tk.StringVar(self, WorkDialog.STATUS_READY)
@@ -73,12 +76,16 @@ class WorkDialog(tb.Window):
 		oConfig = self.m_oLauncher.getConfig()
 		lstWarnings = []
 
-		strCurrentVersion = LauncherConfig.LAUNCHER_VERSION
-		strLatestVersion = SystemApiClient.fetchLatestVersion(oConfig.getValue(LauncherConfig.RESERVATION_SYSTEM),
-															  strCurrentVersion)
-		WorkDialog.LOGGER.info("init 1 version : current %s, latest %s", strCurrentVersion, strLatestVersion)
-		if strLatestVersion != strCurrentVersion:
-			lstWarnings.append(WorkDialog.INIT_NEW_VERSION + strLatestVersion)
+		strCurrentVersion = LauncherConfig.readLauncherVersion()
+		if StringUtil.isEmpty(strCurrentVersion):
+			WorkDialog.LOGGER.warning("init 1 version : version file not found (%s)", LauncherConfig.getVersionFilePath())
+			lstWarnings.append(WorkDialog.INIT_NO_VERSION)
+		else:
+			strLatestVersion = SystemApiClient.fetchLatestVersion(oConfig.getValue(LauncherConfig.RESERVATION_SYSTEM),
+																  strCurrentVersion)
+			WorkDialog.LOGGER.info("init 1 version : current %s, latest %s", strCurrentVersion, strLatestVersion)
+			if strLatestVersion != strCurrentVersion:
+				lstWarnings.append(WorkDialog.INIT_NEW_VERSION + strLatestVersion)
 
 		DatabaseUtil.initMappingQuery()
 		WorkDialog.LOGGER.info("init 2 query mapping done")
@@ -155,6 +162,29 @@ class WorkDialog(tb.Window):
 	def openConfigDialog(self):
 		if self._prepareOpen():
 			self._showDialog(ConfigDialog(self, self.m_oLauncher, self.onChildDialogClosed))
+
+	def openLoginGuide(self):
+		self.showWindow()
+		if self.m_oLoginDialog is not None:
+			self.m_oLoginDialog.bringToFront()
+			return
+		oTaskManager = self.m_oLauncher.getTaskManager()
+		if self.m_oActiveDialog is None:
+			self.m_oLoginDialog = LoginGuideDialog(self, oTaskManager.confirmLogin, self.onLoginDialogClosed)
+			self._showDialog(self.m_oLoginDialog)
+			return
+		self.m_oLoginDialog = LoginGuideDialog(self.m_oActiveDialog, oTaskManager.confirmLogin,
+											   self.onLoginDialogClosed)
+		self.m_oActiveDialog.openChild(self.m_oLoginDialog)
+
+	def closeLoginGuide(self):
+		if self.m_oLoginDialog is not None:
+			self.m_oLoginDialog.closeDialog()
+
+	def onLoginDialogClosed(self, oDialog):
+		if self.m_oLoginDialog is oDialog:
+			self.m_oLoginDialog = None
+		self.onChildDialogClosed(oDialog)
 
 	def onChildDialogClosed(self, oDialog):
 		if self.m_oActiveDialog is oDialog:
@@ -237,11 +267,11 @@ class WorkDialog(tb.Window):
 		oTask = self.m_oDisplayedTask
 		strName = ""
 		strContent = ""
-		lstInfos = []
+		lstDtls = []
 		if oTask is not None:
 			strName = StringUtil.nvl(oTask.getStrChordNm(), "")
 			strContent = StringUtil.nvl(oTask.getStrChordSbst(), "")
-			lstInfos = TestInfoDAO.selectTestInfoList(oTask.getStrTaskId())
+			lstDtls = TestTaskDtlDAO.selectTestTaskDtlList(oTask.getStrTaskId())
 		self.m_oTestNameVar.set(strName)
 		self.m_oContentText.configure(state=tk.NORMAL)
 		self.m_oContentText.delete("1.0", tk.END)
@@ -250,9 +280,9 @@ class WorkDialog(tb.Window):
 		for strItemId in self.m_oTree.get_children():
 			self.m_oTree.delete(strItemId)
 		nNo = 1
-		for oInfo in lstInfos:
-			strResult = oInfo.getStrActResult()
-			arrValues = (nNo, StringUtil.nvl(oInfo.getStrActSbst(), ""), UiTheme.getResultText(strResult))
+		for oDtl in lstDtls:
+			strResult = oDtl.getStrActResult()
+			arrValues = (nNo, StringUtil.nvl(oDtl.getStrActSbst(), ""), UiTheme.getResultText(strResult))
 			strColorName = UiTheme.getResultColorName(strResult)
 			if StringUtil.isEmpty(strColorName):
 				self.m_oTree.insert("", tk.END, values=arrValues)

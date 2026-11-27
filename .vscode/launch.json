@@ -1,0 +1,58 @@
+{
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"name": "KTOPIA: 그냥 실행",
+			"type": "debugpy",
+			"request": "launch",
+			"program": "${workspaceFolder}/main.py",
+			"cwd": "${workspaceFolder}",
+			"console": "integratedTerminal",
+			"justMyCode": true
+		},
+		{
+			"name": "KTOPIA: CRAWLING 주소로 실행",
+			"type": "debugpy",
+			"request": "launch",
+			"program": "${workspaceFolder}/main.py",
+			"args": [
+				"ktopia://start?domain=http%3A%2F%2Flocalhost%3A8082&systemId=UI_SYSTEM_261126141219738&mode=CRAWLING"
+			],
+			"cwd": "${workspaceFolder}",
+			"console": "integratedTerminal",
+			"justMyCode": true
+		},
+		{
+			"name": "KTOPIA: UI TEST 주소로 실행",
+			"type": "debugpy",
+			"request": "launch",
+			"program": "${workspaceFolder}/main.py",
+			"args": [
+				"ktopia://start?domain=http%3A%2F%2Flocalhost%3A8080&reqProdSeq=2026110545689811556&exeSeq=1&chordId=300157224&chordType=UITEST"
+			],
+			"cwd": "${workspaceFolder}",
+			"console": "integratedTerminal",
+			"justMyCode": true
+		},
+		{
+			"name": "KTOPIA: 주소 직접 입력",
+			"type": "debugpy",
+			"request": "launch",
+			"program": "${workspaceFolder}/main.py",
+			"args": [
+				"${input:launchUrl}"
+			],
+			"cwd": "${workspaceFolder}",
+			"console": "integratedTerminal",
+			"justMyCode": true
+		}
+	],
+	"inputs": [
+		{
+			"id": "launchUrl",
+			"type": "promptString",
+			"description": "실행할 ktopia:// 주소를 넣으세요",
+			"default": "ktopia://start?domain=http%3A%2F%2Flocalhost%3A8082&mode=CRAWLING"
+		}
+	]
+}

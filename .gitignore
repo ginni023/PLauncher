@@ -18,3 +18,7 @@ playwright/
 screenShot/
 auth/
 crawl-output/
+
+# local settings
+crawler.properties
+.vscode/settings.json

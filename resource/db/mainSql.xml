@@ -32,21 +32,30 @@
   ]]></sql>
 
   <sql id="selectTaskList" type="S"><![CDATA[
-    SELECT *
+    SELECT TASK_ID, TASK_TYPE, DTL_TYPE, DEVICE, SYS_RECD_CRET_DT,
+           TASK_ADR, TEST_STATUS, TEST_RESULT, ERR_MSG, RUN_DATE,
+           REQ_PROD_SEQ, EXE_CD, PREF_RANK, CHORD_ID, CHORD_NM,
+           CHORD_TYPE, CHORD_SBST, RESERVE_DATE, RESOURCE, SYS_TRTR_ID
       FROM TEST_TASK_LIST
      WHERE TASK_TYPE <> 'RESERVATION'
      ORDER BY SYS_RECD_CRET_DT DESC, TASK_ID DESC
   ]]></sql>
 
   <sql id="selectReservationList" type="S"><![CDATA[
-    SELECT *
+    SELECT TASK_ID, TASK_TYPE, DTL_TYPE, DEVICE, SYS_RECD_CRET_DT,
+           TASK_ADR, TEST_STATUS, TEST_RESULT, ERR_MSG, RUN_DATE,
+           REQ_PROD_SEQ, EXE_CD, PREF_RANK, CHORD_ID, CHORD_NM,
+           CHORD_TYPE, CHORD_SBST, RESERVE_DATE, RESOURCE, SYS_TRTR_ID
       FROM TEST_TASK_LIST
      WHERE TASK_TYPE = 'RESERVATION'
      ORDER BY SYS_RECD_CRET_DT DESC, TASK_ID DESC
   ]]></sql>
 
   <sql id="selectReadyTaskList" type="S"><![CDATA[
-    SELECT *
+    SELECT TASK_ID, TASK_TYPE, DTL_TYPE, DEVICE, SYS_RECD_CRET_DT,
+           TASK_ADR, TEST_STATUS, TEST_RESULT, ERR_MSG, RUN_DATE,
+           REQ_PROD_SEQ, EXE_CD, PREF_RANK, CHORD_ID, CHORD_NM,
+           CHORD_TYPE, CHORD_SBST, RESERVE_DATE, RESOURCE, SYS_TRTR_ID
       FROM TEST_TASK_LIST
      WHERE TASK_TYPE <> 'RESERVATION'
        AND TEST_STATUS = 'RDY'
@@ -54,18 +63,102 @@
   ]]></sql>
 
   <sql id="selectPendingReservationList" type="S"><![CDATA[
-    SELECT *
+    SELECT TASK_ID, TASK_TYPE, DTL_TYPE, DEVICE, SYS_RECD_CRET_DT,
+           TASK_ADR, TEST_STATUS, TEST_RESULT, ERR_MSG, RUN_DATE,
+           REQ_PROD_SEQ, EXE_CD, PREF_RANK, CHORD_ID, CHORD_NM,
+           CHORD_TYPE, CHORD_SBST, RESERVE_DATE, RESOURCE, SYS_TRTR_ID
       FROM TEST_TASK_LIST
      WHERE TASK_TYPE = 'RESERVATION'
        AND TEST_STATUS IN ('RDY', 'WAIT')
      ORDER BY RESERVE_DATE, TASK_ID
   ]]></sql>
 
-  <sql id="selectTestInfoList" type="S"><![CDATA[
-    SELECT *
+  <sql id="selectTestTaskDtlList" type="S"><![CDATA[
+    SELECT TASK_ID, DATA_SEQ, ACT_TYPE, ACT_RESULT, ACT_STATE,
+           ELM_ID, INPUT_VALUE, DELAY_TIME, CAPTURE_IND, ACT_SBST,
+           ACT_NO, ACT_RST_SBST, ELM_TAG, ELM_NM, ELM_TYPE,
+           ELM_SEQ, ELM_CLASS, INNER_TEXT, ERROR_CLASS, ERROR_MSG,
+           PAGE_NO, TARGET
       FROM TEST_TASK_DTL
      WHERE TASK_ID = :task_Id
      ORDER BY DATA_SEQ, ACT_NO
+  ]]></sql>
+
+  <sql id="selectTestTaskDtl" type="S"><![CDATA[
+    SELECT TASK_ID, DATA_SEQ, ACT_TYPE, ACT_RESULT, ACT_STATE,
+           ELM_ID, INPUT_VALUE, DELAY_TIME, CAPTURE_IND, ACT_SBST,
+           ACT_NO, ACT_RST_SBST, ELM_TAG, ELM_NM, ELM_TYPE,
+           ELM_SEQ, ELM_CLASS, INNER_TEXT, ERROR_CLASS, ERROR_MSG,
+           PAGE_NO, TARGET
+      FROM TEST_TASK_DTL
+     WHERE TASK_ID  = :task_Id
+       AND DATA_SEQ = :data_Seq
+       AND ACT_NO   = :act_No
+  ]]></sql>
+
+  <sql id="insertTestTaskDtl" type="I"><![CDATA[
+    INSERT INTO TEST_TASK_DTL (
+        TASK_ID, DATA_SEQ, ACT_TYPE, ACT_RESULT, ACT_STATE,
+        ELM_ID, INPUT_VALUE, DELAY_TIME, CAPTURE_IND, ACT_SBST,
+        ACT_NO, ACT_RST_SBST, ELM_TAG, ELM_NM, ELM_TYPE,
+        ELM_SEQ, ELM_CLASS, INNER_TEXT, ERROR_CLASS, ERROR_MSG,
+        PAGE_NO, TARGET
+    ) VALUES (
+        :task_Id, :data_Seq, :act_Type, :act_Result, :act_State,
+        :elm_Id, :input_Value, :delay_Time, :capture_Ind, :act_Sbst,
+        :act_No, :act_Rst_Sbst, :elm_Tag, :elm_Nm, :elm_Type,
+        :elm_Seq, :elm_Class, :inner_Text, :error_Class, :error_Msg,
+        :page_No, :target
+    )
+  ]]></sql>
+
+  <sql id="updateTestTaskDtlResult" type="U"><![CDATA[
+    UPDATE TEST_TASK_DTL
+       SET ACT_RESULT   = :act_Result,
+           ACT_STATE    = :act_State,
+           ACT_RST_SBST = :act_Rst_Sbst,
+           ERROR_CLASS  = :error_Class,
+           ERROR_MSG    = :error_Msg
+     WHERE TASK_ID  = :task_Id
+       AND DATA_SEQ = :data_Seq
+       AND ACT_NO   = :act_No
+  ]]></sql>
+
+  <sql id="insertTestComm" type="I"><![CDATA[
+    INSERT INTO TEST_COMM_LIST (
+        META_KEY, UPR_DIV_KEY, SYS_RECD_CRET_DT,
+        DIS_NM, ALIAS_NM, META_VALUE, VALUE_DESC
+    ) VALUES (
+        :meta_Key, :upr_Div_Key, :sys_Recd_Cret_Dt,
+        :dis_Nm, :alias_Nm, :meta_Value, :value_Desc
+    )
+  ]]></sql>
+
+  <sql id="updateTestComm" type="U"><![CDATA[
+    UPDATE TEST_COMM_LIST
+       SET SYS_RECD_CHG_DT = :sys_Recd_Chg_Dt,
+           DIS_NM          = :dis_Nm,
+           ALIAS_NM        = :alias_Nm,
+           META_VALUE      = :meta_Value,
+           VALUE_DESC      = :value_Desc
+     WHERE UPR_DIV_KEY = :upr_Div_Key
+       AND META_KEY    = :meta_Key
+  ]]></sql>
+
+  <sql id="selectTestCommList" type="S"><![CDATA[
+    SELECT META_KEY, UPR_DIV_KEY, SYS_RECD_CRET_DT, SYS_RECD_CHG_DT,
+           DIS_NM, ALIAS_NM, META_VALUE, VALUE_DESC
+      FROM TEST_COMM_LIST
+     WHERE UPR_DIV_KEY = :upr_Div_Key
+     ORDER BY META_KEY
+  ]]></sql>
+
+  <sql id="selectTestComm" type="S"><![CDATA[
+    SELECT META_KEY, UPR_DIV_KEY, SYS_RECD_CRET_DT, SYS_RECD_CHG_DT,
+           DIS_NM, ALIAS_NM, META_VALUE, VALUE_DESC
+      FROM TEST_COMM_LIST
+     WHERE UPR_DIV_KEY = :upr_Div_Key
+       AND META_KEY    = :meta_Key
   ]]></sql>
 
 </sqls>

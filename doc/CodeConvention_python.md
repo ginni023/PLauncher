@@ -43,7 +43,7 @@
 | `fn` | 호출 가능한 객체(함수·메서드) | **Python 추가** — 콜백 전달용 |
 
 ## 3. DTO
-- 테이블 대응 객체는 이름 끝에 `DTO` (TEST_TASK_LIST → `TestTaskDTO`, TEST_TASK_DTL → `TestInfoDTO`)
+- 테이블 대응 객체는 이름 끝에 `DTO` (TEST_TASK_LIST → `TestTaskDTO`, TEST_TASK_DTL → `TestTaskDtlDTO`)
 - 멤버변수: `m_` + 타입 접두사 + 컬럼명 PascalCase
   - VARCHAR → `m_strTaskId`, INTEGER → `m_nActNo`
 - 값은 필드에 직접 넣고 빼지 않고 **get/set 함수**로만 다룬다: `getStrTaskId()`, `setStrTaskId(strValue)`, `getNActNo()`

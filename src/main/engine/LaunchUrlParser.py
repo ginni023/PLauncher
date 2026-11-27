@@ -20,6 +20,7 @@ class LaunchUrlParser:
 	PARAM_CHORD_TYPE = "chordType"
 	PARAM_CHORD_TOKEN = "chordToken"
 	PARAM_MODE = "mode"
+	PARAM_SYSTEM_ID = "systemId"
 	MODE_CRAWLING = "CRAWLING"
 	SCHEME_SEPARATOR = "://"
 	WINDOWS_ADDED_PATH = "/"
@@ -30,6 +31,7 @@ class LaunchUrlParser:
 	ERROR_INVALID_SCHEME = "ktopia:// 주소가 아닙니다."
 	ERROR_INVALID_ACTION = "지원하지 않는 실행 동작입니다 : "
 	ERROR_NO_DOMAIN = "domain 파라미터가 없습니다."
+	ERROR_NO_SYSTEM_ID = "systemId 파라미터가 없습니다. (mode=CRAWLING)"
 	ERROR_UNKNOWN_TASK = "작업 타입을 알 수 없습니다. (mode=CRAWLING, reqProdSeq·exeSeq·chordId 또는 chordToken 필요)"
 
 	def __init__(self):
@@ -44,7 +46,7 @@ class LaunchUrlParser:
 		return StringUtil.equalsIgnoreCase(strHead, strPrefix)
 
 	@staticmethod
-	def parse(strUrl, strTrtrId):
+	def parse(strUrl):
 		oParts = urllib.parse.urlsplit(strUrl)
 		if not StringUtil.equalsIgnoreCase(oParts.scheme, LaunchUrlParser.SCHEME):
 			raise ValueError(LaunchUrlParser.ERROR_INVALID_SCHEME)
@@ -65,6 +67,7 @@ class LaunchUrlParser:
 		strChordType = LaunchUrlParser.getParam(mapParams, LaunchUrlParser.PARAM_CHORD_TYPE)
 		strChordToken = LaunchUrlParser.getParam(mapParams, LaunchUrlParser.PARAM_CHORD_TOKEN)
 		strMode = LaunchUrlParser.getParam(mapParams, LaunchUrlParser.PARAM_MODE)
+		strSystemId = LaunchUrlParser.getParam(mapParams, LaunchUrlParser.PARAM_SYSTEM_ID)
 
 		oTask = TestTaskDTO()
 		oTask.setStrTaskId(Util.makeTaskId())
@@ -72,10 +75,12 @@ class LaunchUrlParser:
 		oTask.setStrTaskAdr(LaunchUrlParser.restoreOriginalUrl(strUrl))
 		oTask.setStrTestStatus(TaskStatus.RDY)
 		oTask.setStrChordType(strChordType)
-		oTask.setStrSysTrtrId(strTrtrId)
 
 		if StringUtil.equalsIgnoreCase(strMode, LaunchUrlParser.MODE_CRAWLING):
+			if StringUtil.isEmpty(strSystemId):
+				raise ValueError(LaunchUrlParser.ERROR_NO_SYSTEM_ID)
 			oTask.setStrTaskType(TaskType.CRAWLING)
+			oTask.setStrChordId(strSystemId)
 			return oTask
 		bUiTest = not StringUtil.isEmpty(strReqProdSeq) and not StringUtil.isEmpty(strExeSeq) \
 			and not StringUtil.isEmpty(strChordId)

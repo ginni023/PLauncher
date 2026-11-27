@@ -13,7 +13,7 @@ class UiTestRunner:
 		raise TypeError("UiTestRunner cannot be instantiated")
 
 	@staticmethod
-	def run(oTask, oConfig, oStopEvent):
+	def run(oTask, oConfig, oStopEvent, oTaskManager):
 		UiTestRunner.LOGGER.info("ui test start (stub) : %s", oTask.getStrTaskId())
 		oStopEvent.wait(UiTestRunner.STUB_SECONDS)
 		if oStopEvent.is_set():

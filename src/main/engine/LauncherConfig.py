@@ -11,7 +11,8 @@ class LauncherConfig:
 	LOGGER = logging.getLogger(__name__)
 	FILE_NAME = "config.properties"
 	FILE_HEADER = "K-TOPIA Launcher configuration"
-	LAUNCHER_VERSION = "0.1.0"
+	VERSION_FILE_NAME = ".launcher"
+	VERSION_FILE_ENCODING = "utf-8-sig"
 	YES = "Y"
 	NO = "N"
 
@@ -19,7 +20,7 @@ class LauncherConfig:
 	INSTALL_PATH = "INSTALL_PATH"
 	LINK_REGST_IND = "LINK_REGST_IND"
 	RESERVATION_USE = "RESERVATION_USE"
-	DEV_TRTR_ID = "DEV_TRTR_ID"
+	API_TOKEN = "API_TOKEN"
 	NODEJS_PATH = "NODEJS_PATH"
 	PLAYWRIGHT_PATH = "PLAYWRIGHT_PATH"
 	MINIMIZE_IND = "MINIMIZE_IND"
@@ -27,11 +28,12 @@ class LauncherConfig:
 	RESERVATION_CHECK_TIME = "RESERVATION_CHECK_TIME"
 
 	KEY_ORDER = (
-		RESERVATION_SYSTEM, INSTALL_PATH, LINK_REGST_IND, RESERVATION_USE, DEV_TRTR_ID,
+		RESERVATION_SYSTEM, INSTALL_PATH, LINK_REGST_IND, RESERVATION_USE, API_TOKEN,
 		NODEJS_PATH, PLAYWRIGHT_PATH, MINIMIZE_IND, SAVE_PATH, RESERVATION_CHECK_TIME,
 	)
 	AUTO_PATH_KEYS = (INSTALL_PATH, NODEJS_PATH, PLAYWRIGHT_PATH, SAVE_PATH)
 	FLAG_KEYS = (LINK_REGST_IND, RESERVATION_USE, MINIMIZE_IND)
+	SECRET_KEYS = (API_TOKEN,)
 
 	DEFAULT_RESERVATION_SYSTEM = "http://www.ktopia.co.kr"
 	DEFAULT_RESERVATION_CHECK_TIME = 5
@@ -48,6 +50,19 @@ class LauncherConfig:
 		return os.path.join(PathUtil.getAppDir(), LauncherConfig.FILE_NAME)
 
 	@staticmethod
+	def getVersionFilePath():
+		return os.path.join(PathUtil.getAppDir(), LauncherConfig.VERSION_FILE_NAME)
+
+	@staticmethod
+	def readLauncherVersion():
+		strPath = LauncherConfig.getVersionFilePath()
+		if not os.path.isfile(strPath):
+			return ""
+		with open(strPath, "r", encoding=LauncherConfig.VERSION_FILE_ENCODING) as oFile:
+			strContent = oFile.read()
+		return strContent.strip()
+
+	@staticmethod
 	def getDefaultValues():
 		strAppDir = PathUtil.getAppDir()
 		mapDefaults = {}
@@ -55,7 +70,7 @@ class LauncherConfig:
 		mapDefaults[LauncherConfig.INSTALL_PATH] = strAppDir
 		mapDefaults[LauncherConfig.LINK_REGST_IND] = LauncherConfig.YES
 		mapDefaults[LauncherConfig.RESERVATION_USE] = LauncherConfig.NO
-		mapDefaults[LauncherConfig.DEV_TRTR_ID] = ""
+		mapDefaults[LauncherConfig.API_TOKEN] = ""
 		mapDefaults[LauncherConfig.NODEJS_PATH] = os.path.join(strAppDir, LauncherConfig.NODEJS_DIR_NAME)
 		mapDefaults[LauncherConfig.PLAYWRIGHT_PATH] = os.path.join(strAppDir, LauncherConfig.PLAYWRIGHT_DIR_NAME)
 		mapDefaults[LauncherConfig.MINIMIZE_IND] = LauncherConfig.NO

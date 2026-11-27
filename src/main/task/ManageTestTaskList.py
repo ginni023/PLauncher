@@ -5,6 +5,7 @@ import threading
 from util.DateUtil import DateUtil
 from util.StringUtil import StringUtil
 from task.TaskRunner import TaskRunner
+from task.code.TaskResult import TaskResult
 from task.code.TaskStatus import TaskStatus
 from task.code.TaskType import TaskType
 from database.TestTaskDAO import TestTaskDAO
@@ -18,6 +19,8 @@ class ManageTestTaskList:
 	EVENT_STARTED = "STARTED"
 	EVENT_FINISHED = "FINISHED"
 	EVENT_IDLE = "IDLE"
+	EVENT_LOGIN_REQUEST = "LOGIN_REQUEST"
+	EVENT_LOGIN_DONE = "LOGIN_DONE"
 
 	MESSAGE_ADDED = "작업 등록 : "
 	MESSAGE_RESERVATION_ADDED = "예약 작업 등록 : "
@@ -25,6 +28,7 @@ class ManageTestTaskList:
 	MESSAGE_STARTED = "작업 수행 중 : "
 	MESSAGE_FINISHED = "작업 종료 : "
 	MESSAGE_IDLE = "대기 중"
+	MESSAGE_LOGIN_REQUEST = "로그인 대기 : "
 
 	def __init__(self, oConfig, fnOnEvent):
 		self.m_oConfig = oConfig
@@ -36,6 +40,7 @@ class ManageTestTaskList:
 		self.m_bInterruptFlag = False
 		self.m_oCurrentTask = None
 		self.m_oStopEvent = None
+		self.m_oLoginDoneEvent = None
 		self.m_bShutdown = False
 
 	@staticmethod
@@ -151,6 +156,23 @@ class ManageTestTaskList:
 			self.m_oCurrentTask.setStrTestStatus(TaskStatus.STOP)
 			TestTaskDAO.updateTestTaskStatus(self.m_oCurrentTask)
 
+	def requestLogin(self, oTask):
+		with self.m_oLock:
+			oLoginDoneEvent = threading.Event()
+			self.m_oLoginDoneEvent = oLoginDoneEvent
+		self._notify(ManageTestTaskList.EVENT_LOGIN_REQUEST, oTask, ManageTestTaskList.MESSAGE_LOGIN_REQUEST)
+		return oLoginDoneEvent
+
+	def confirmLogin(self):
+		with self.m_oLock:
+			if self.m_oLoginDoneEvent is not None:
+				self.m_oLoginDoneEvent.set()
+
+	def finishLogin(self, oTask):
+		with self.m_oLock:
+			self.m_oLoginDoneEvent = None
+		self._notify(ManageTestTaskList.EVENT_LOGIN_DONE, oTask, ManageTestTaskList.MESSAGE_STARTED)
+
 	def getCurrentTask(self):
 		with self.m_oLock:
 			return self.m_oCurrentTask
@@ -161,9 +183,10 @@ class ManageTestTaskList:
 
 	def _runTask(self, oTask, oQueue, oStopEvent):
 		try:
-			TaskRunner.run(oTask, self.m_oConfig, oStopEvent)
+			TaskRunner.run(oTask, self.m_oConfig, oStopEvent, self)
 		except Exception as oException:
 			ManageTestTaskList.LOGGER.exception("task failed : %s", oTask.getStrTaskId())
+			oTask.setStrTestResult(TaskResult.FAIL)
 			oTask.setStrTestStatus(TaskStatus.ERR)
 			oTask.setStrErrMsg(str(oException))
 		if oStopEvent.is_set():

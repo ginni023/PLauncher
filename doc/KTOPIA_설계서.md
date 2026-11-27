@@ -140,18 +140,19 @@ ktopia://start?domain=http%3A%2F%2Flocalhost%3A8080&chordToken=ks7dfenv20455eoed
 ```
 
 **파라미터 → 컬럼**
+
 | 파라미터 | 컬럼 | 설명 |
 |---|---|---|
 | (주소 전체) | TASK_ADR | 웹이 보낸 주소 그대로 |
 | `domain` | — | 웹 도메인 (필수). TASK_ADR 안에 있음 |
 | `mode` | TASK_TYPE | `CRAWLING`이면 CRAWLING |
-| `systemId` 등 | — | 따로 저장하지 않음, 쓸 때 TASK_ADR을 파싱 |
+| `systemId` | CHORD_ID | 시스템 ID (CRAWLING 필수) |
 | `reqProdSeq` | REQ_PROD_SEQ | 플랜 ID (수행 SR) |
 | `exeSeq` | EXE_CD | 수행 Inst Seq |
 | `chordId` | CHORD_ID | chord ID |
 | `chordType` | CHORD_TYPE | chord 타입 |
 | `chordToken` | CHORD_ID | chord 토큰 (크롤링) |
-| — | SYS_TRTR_ID | 설정의 인증 아이디 |
+| — | SYS_TRTR_ID | 지금은 저장하지 않음 |
 
 ### 3.4 실행 순서
 
@@ -186,7 +187,7 @@ sequenceDiagram
 
 | 순서 | 내용 | 처리 |
 |:---:|---|---|
-| 1 | 런처 버전 체크 | 시스템 도메인 API (예정) |
+| 1 | 런처 버전 체크 | 현재 버전은 `.launcher` 파일에서 읽음, 최신 버전은 시스템 도메인 API (예정) |
 | 2 | `initMappingQuery()` | mainSql `type=S` → selectQueryMap, `I/U/D` → executeQueryMap, initSql → systemQueryMap |
 | 3 | Node.js 설치 체크 | `NODEJS_PATH\node.exe` |
 | 4 | Playwright 설치 체크 | `PLAYWRIGHT_PATH\node_modules\@playwright\test` |
@@ -288,11 +289,32 @@ sequenceDiagram
 |---|---|---|
 | STANDARD | UiTestRunner | 웹에서 받은 Playwright TypeScript 소스를 Node.js로 실행, 동작별 결과를 TEST_TASK_DTL에 기록 |
 | RESERVATION | UiTestRunner | 위와 같음 |
-| CRAWLING | CrawlingRunner | 크롤링 (crawling 패키지 연동 예정) |
+| CRAWLING | CrawlingRunner | 크롤링 — whl `crawling` 패키지의 CrawlerEngine 사용 (아래 4.7) |
 | VALIDATION | CrawlingRunner | 크롤링 |
 
 - `MINIMIZE_IND = Y`이면 UI TEST를 HEADLESS로 진행한다.
 - 캡처는 `SAVE_PATH`에 저장한다.
+
+### 4.7 크롤링 업무 (CrawlingRunner)
+주소: `ktopia://start?domain=<도메인>&mode=CRAWLING&systemId=<시스템 ID>` — `domain`·`mode`는 모든 주소에 붙고, 뒤의 파라미터는 mode에 따라 다르다.
+
+1. TEST_STATUS = WRK
+2. 서버에 업무 정보 요청 — `SystemApiClient.getServerData(domain, systemId, type)` (type에 따라 서버가 다른 정보를 보낼 수 있다)
+3. 받은 정보를 파싱해 작업 객체와 멤버변수 map에 저장 (업무가 바뀌면 멤버변수 초기화)
+4. 로그인 여부(`loginYn`)에 따라 진행
+   - N: 로그인 없이 TEST_COMM_LIST에 시스템 정보 저장 — META_KEY 시스템ID, UPR_DIV_KEY `PL_UI_SYSTEM_INFO`, DIS_NM 시스템 이름, ALIAS_NM 시스템 URL, META_VALUE `loginYn:N,expMin:0`
+   - Y: `CrawlerEngine.login()` + 런처의 **로그인 안내** 창. [확인] → 로그인 완료. 세션 json이 저장되면 시스템 정보 저장 — META_VALUE `loginYn:Y,expMin:20`, VALUE_DESC `sessionSaveDt:<세션 저장 일시>`
+5. 크롤링 — `CrawlerEngine.crawl()`
+6. 결과 보내기 — **지금은 콘솔에 "보내기"만** (예정: 결과 json `sendCrawlingRslt(strDomain, strRequest)` → 결과 파일 `uploadMultiFiles(...)`)
+7. 성공: TEST_RESULT **Y**, TEST_STATUS **CMP**
+8. `startTask()` — 업무가 끝나면 결과와 상관없이 다음 업무로
+
+| 실패 | TEST_RESULT | TEST_STATUS |
+|---|---|---|
+| 서버 API 통신 실패 (모든 서버 API) | N | ERR |
+| 로그인 · 크롤링 실패 | N | FAIL |
+
+상세: [spec/runner/CrawlingRunner.md](spec/runner/CrawlingRunner.md)
 
 ---
 
@@ -394,7 +416,7 @@ flowchart LR
 │ 설치 경로           [D:\PLauncher\dist                     ]   │ ← 읽기 전용
 │ 웹에서 런처 실행    [✔] 사용                                  │
 │ 예약 기능           [ ] 사용                                  │
-│ 인증 아이디         [                       ] [인증] 인증됨   │
+│ API 토큰            [**********************] [인증] 인증됨   │
 │ Node.js 경로        [D:\PLauncher\dist\node                ]   │ ← 읽기 전용
 │ Playwright 경로     [D:\PLauncher\dist\playwright          ]   │ ← 읽기 전용
 │ 최소화(HEADLESS)    [ ] 사용                                  │
@@ -405,7 +427,7 @@ flowchart LR
 ```
 - 자동으로 정해지는 경로는 읽기 전용으로 보여준다.
 - **적용 버튼(우측 하단)을 눌러야 저장**된다. 변경된 사항이 있을 때만 활성화된다.
-- 인증 아이디는 입력 후 **[인증]**으로 시스템 도메인 API 확인을 받아야 저장할 수 있다.
+- API 토큰은 입력 후 **[인증]**으로 시스템 도메인 API 확인을 받아야 저장할 수 있다.
 
 ---
 
@@ -418,7 +440,7 @@ flowchart LR
 | INSTALL_PATH | 프로그램이 설치된 폴더의 절대경로 | 현재 폴더 | 자동 |
 | LINK_REGST_IND | 웹에서 런처를 열 수 있게 할지 여부 | `Y` | |
 | RESERVATION_USE | 예약 기능 사용 여부 | `N` | |
-| DEV_TRTR_ID | 인증 아이디 | 빈 값 | 인증 후 저장 |
+| API_TOKEN | 서버 API 인증 토큰. 서버 API를 부를 때 `Authorization: Bearer <토큰>` 헤더로 보낸다 | 빈 값 | 인증 후 저장. 설정 창에서 `*`로 가려 표시. 비어 있으면 헤더를 보내지 않음 |
 | NODEJS_PATH | Node.js 폴더 절대경로 | 현재 폴더 + `\node` | 자동 |
 | PLAYWRIGHT_PATH | Playwright 폴더 절대경로 | 현재 폴더 + `\playwright` | 자동 |
 | MINIMIZE_IND | 최소화 여부 (Y면 UI TEST를 HEADLESS로) | `N` | |
@@ -480,7 +502,8 @@ erDiagram
 | 테이블 | 객체 |
 |---|---|
 | TEST_TASK_LIST | `TestTaskDTO` |
-| TEST_TASK_DTL | `TestInfoDTO` |
+| TEST_TASK_DTL | `TestTaskDtlDTO` |
+| TEST_COMM_LIST | `TestCommDTO` |
 
 **멤버변수 명명** — 컬럼 이름을 소문자로 바꾼 뒤 첫 글자와 `_` 다음 글자를 대문자로, 앞에 타입 접두사와 멤버 접두사 `m_`
 
@@ -527,7 +550,7 @@ classDiagram
         +getStrTaskId()
         +setStrTaskId()
     }
-    class TestInfoDTO {
+    class TestTaskDtlDTO {
         -m_nActNo
         +getNActNo()
     }
@@ -542,8 +565,8 @@ classDiagram
     TaskRunner --> UiTestRunner
     TaskRunner --> CrawlingRunner
     TestTaskDAO --> TestTaskDTO
-    TestInfoDAO --> TestInfoDTO
-    WorkDialog --> TestInfoDAO
+    TestTaskDtlDAO --> TestTaskDtlDTO
+    WorkDialog --> TestTaskDtlDAO
     WorkDialog ..> ConfigDialog
     WorkDialog ..> TaskListDialog
     WorkDialog ..> ReservationListDialog
@@ -559,12 +582,12 @@ classDiagram
 | `src/main` | 전체 조립 | KtopiaLauncher |
 | `engine` | 런처 기반 — 웹 실행 주소, 설정, 실행 환경, 시스템 서버 연동 | LaunchUrlParser, ProtocolRegistry, SingleInstanceServer, LauncherConfig, LauncherEnvironment, SystemApiClient |
 | `task` | 작업 관리 | ManageTestTaskList, ReservationScheduler, TaskRunner |
-| `task/code` | 코드값 | TaskStatus, TaskType, DtlType |
+| `task/code` | 코드값 | TaskStatus, TaskType, DtlType, TaskResult |
 | `runner` | 실행기 | UiTestRunner, CrawlingRunner |
 | `ui` | 트레이·공통 | TrayIcon, IconFactory, UiAction |
-| `ui/dialog` | 창 | WorkDialog, ChildDialog, TaskHistoryDialog, TaskListDialog, ReservationListDialog, ErrorDialog, ConfigDialog |
-| `dto` | 객체 | TestTaskDTO, TestInfoDTO |
-| `database` | DB | DatabaseUtil, TestTaskDAO, TestInfoDAO |
+| `ui/dialog` | 창 | WorkDialog, ChildDialog, TaskHistoryDialog, TaskListDialog, ReservationListDialog, ErrorDialog, ConfigDialog, LoginGuideDialog |
+| `dto` | 객체 | TestTaskDTO, TestTaskDtlDTO, TestCommDTO |
+| `database` | DB | DatabaseUtil, TestTaskDAO, TestTaskDtlDAO, TestCommDAO |
 | `util` | 공통 | Util, PathUtil, StringUtil, DateUtil, LogUtil, PropertiesUtil |
 | `secure` | 보안 (예정) | — |
 
@@ -576,7 +599,8 @@ classDiagram
 | 항목 | 현재 처리 | 필요한 것 |
 |---|---|---|
 | Playwright UI TEST 실행 | 임시 구현 (3초 후 완료) | TS 소스를 받는 API, 실행·결과 기록 방식 |
-| 크롤링 실행 | 임시 구현 | 크롤링 방식 |
+| 크롤링 결과 보내기 | 콘솔·로그에 "보내기"만 찍음 | 서버 API `sendCrawlingRslt`, `uploadMultiFiles` |
+| 서버 정보 API (`getServerData`) | 런처가 정한 경로·키로 호출 (서버 미구현 → 지금은 ERR) | 서버 API 경로, 요청·응답 형식 확정 |
 | 예약 조회 API · 인증 API | 임시 구현 | 주소, 요청·응답 형식 |
 | 버전 확인·업데이트, 라이브러리 설치 | 없음 | 설치 절차 |
 | `chordToken` 저장 컬럼 | CHORD_ID | 확정 |

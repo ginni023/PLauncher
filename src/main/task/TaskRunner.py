@@ -10,12 +10,12 @@ class TaskRunner:
 		raise TypeError("TaskRunner cannot be instantiated")
 
 	@staticmethod
-	def run(oTask, oConfig, oStopEvent):
+	def run(oTask, oConfig, oStopEvent, oTaskManager):
 		strTaskType = oTask.getStrTaskType()
 		if StringUtil.equalsIgnoreCase(strTaskType, TaskType.CRAWLING):
-			CrawlingRunner.run(oTask, oConfig, oStopEvent)
+			CrawlingRunner.run(oTask, oConfig, oStopEvent, oTaskManager)
 			return
 		if StringUtil.equalsIgnoreCase(strTaskType, TaskType.VALIDATION):
-			CrawlingRunner.run(oTask, oConfig, oStopEvent)
+			CrawlingRunner.run(oTask, oConfig, oStopEvent, oTaskManager)
 			return
-		UiTestRunner.run(oTask, oConfig, oStopEvent)
+		UiTestRunner.run(oTask, oConfig, oStopEvent, oTaskManager)

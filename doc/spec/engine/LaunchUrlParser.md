@@ -25,26 +25,26 @@
 
 | 조건 | TASK_TYPE | 추가 저장 |
 |---|---|---|
-| `mode=CRAWLING` | CRAWLING | |
+| `mode=CRAWLING` | CRAWLING | CHORD_ID=systemId (**systemId 필수**, 없으면 ValueError) |
 | reqProdSeq, exeSeq, chordId 모두 있음 | STANDARD, DTL_TYPE=PLAYWRIGHT | REQ_PROD_SEQ, EXE_CD, CHORD_ID |
 | chordToken 있음 | VALIDATION | CHORD_ID=chordToken |
 | 그 외 | 오류 (ValueError) | |
 
-공통: TASK_ID=`Util.makeTaskId()`, TASK_ADR=주소 전체(원래 모양), TEST_STATUS=RDY, CHORD_TYPE=chordType, SYS_TRTR_ID=인증 아이디, SYS_RECD_CRET_DT=현재 시각. `domain`은 필수.
+공통: TASK_ID=`Util.makeTaskId()`, TASK_ADR=주소 전체(원래 모양), TEST_STATUS=RDY, CHORD_TYPE=chordType, SYS_RECD_CRET_DT=현재 시각. `domain`은 필수.
 
 ## 메서드
 
 | 메서드 | 설명 |
 |---|---|
 | `isLaunchUrl(strValue)` | `ktopia:`로 시작하는지 |
-| `parse(strUrl, strTrtrId)` | 작업 객체 반환 |
+| `parse(strUrl)` | 작업 객체 반환 |
 | `restoreOriginalUrl(strUrl)` | Windows가 넣은 `start/?`의 `/`를 빼서 원래 모양으로 |
 | `parseParams(strUrl)` | 위 파싱 규칙대로 {대문자 이름: 디코딩된 값} — 실행기가 TASK_ADR을 다시 읽을 때도 사용 |
 | `getParam(mapParams, strName)` | 이름(대소문자 무시)으로 값, 없으면 "" |
 
 ## 참고
 
-ValueError: ktopia 주소가 아님 / start가 아님 / domain 없음 / 작업 타입을 알 수 없음.
-`systemId` 등 위 표에 없는 파라미터는 TASK_ADR 안에만 남는다 (필요할 때 `parseParams`로 꺼낸다).
+ValueError: ktopia 주소가 아님 / start가 아님 / domain 없음 / CRAWLING인데 systemId 없음 / 작업 타입을 알 수 없음.
+위 표에 없는 파라미터는 TASK_ADR 안에만 남는다 (필요할 때 `parseParams`로 꺼낸다).
 
 소스: [src/main/engine/LaunchUrlParser.py](../../../src/main/engine/LaunchUrlParser.py)

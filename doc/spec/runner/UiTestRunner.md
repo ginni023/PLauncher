@@ -8,7 +8,7 @@
 
 | 메서드 | 설명 |
 |---|---|
-| `run(oTask, oConfig, oStopEvent)` | 중지 신호가 오면 상태를 바꾸지 않고 돌아간다 (관리자가 STOP 처리) |
+| `run(oTask, oConfig, oStopEvent, oTaskManager)` | 중지 신호가 오면 상태를 바꾸지 않고 돌아간다 (관리자가 STOP 처리) |
 
 ## 참고
 

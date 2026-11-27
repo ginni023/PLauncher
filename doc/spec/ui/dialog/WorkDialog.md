@@ -11,7 +11,7 @@
 - 자식 Dialog는 한 번에 하나, 모달
 
 **init 순서** (`init()`)
-1. 런처 버전 체크 — `SystemApiClient.fetchLatestVersion` (현재 임시: 항상 같은 버전)
+1. 런처 버전 체크 — 현재 버전은 `.launcher` 파일(`LauncherConfig.readLauncherVersion`), 최신 버전은 `SystemApiClient.fetchLatestVersion` (현재 임시: 항상 같은 버전). `.launcher`가 없으면 "버전 파일(.launcher) 없음"
 2. `DatabaseUtil.initMappingQuery()` — selectQueryMap(type=S), executeQueryMap(I/U/D), systemQueryMap(initSql) 로딩
 3. Node.js 설치 체크 — `NODEJS_PATH\node.exe`
 4. Playwright 설치 체크 — `PLAYWRIGHT_PATH\node_modules\@playwright\test`
@@ -28,6 +28,7 @@
 | `displayTask(oTask) / refreshDisplayedTask()` | 작업 표시 / 다시 읽기 |
 | `refreshActiveDialog()` | 열린 자식 Dialog 갱신 |
 | `openReservationList() / openTaskList() / openErrorDialog() / openConfigDialog()` | 창을 보이게 한 뒤 자식 Dialog 열기 (이미 열려 있으면 그 창을 앞으로) |
+| `openLoginGuide() / closeLoginGuide()` | [로그인 안내](LoginGuideDialog.md) 창 열기(다른 자식 Dialog가 열려 있으면 그 위에) / 닫기 |
 | `report_callback_exception(...)` | UI 이벤트 예외 경계: 로그 + 오류 메시지 창 |
 
 소스: [src/main/ui/dialog/WorkDialog.py](../../../../src/main/ui/dialog/WorkDialog.py)

@@ -4,7 +4,7 @@ from tkinter import ttk
 from ui.dialog.ChildDialog import ChildDialog
 from ui.UiTheme import UiTheme
 from util.StringUtil import StringUtil
-from database.TestInfoDAO import TestInfoDAO
+from database.TestTaskDtlDAO import TestTaskDtlDAO
 
 
 class ErrorDialog(ChildDialog):
@@ -47,13 +47,13 @@ class ErrorDialog(ChildDialog):
 		if not StringUtil.isEmpty(strTaskError):
 			lstLines.append(ErrorDialog.LABEL_TASK_ERROR + strTaskError)
 			bHasError = True
-		lstInfos = TestInfoDAO.selectTestInfoList(self.m_oTask.getStrTaskId())
-		for oInfo in lstInfos:
-			strErrorMsg = oInfo.getStrErrorMsg()
+		lstDtls = TestTaskDtlDAO.selectTestTaskDtlList(self.m_oTask.getStrTaskId())
+		for oDtl in lstDtls:
+			strErrorMsg = oDtl.getStrErrorMsg()
 			if StringUtil.isEmpty(strErrorMsg):
 				continue
-			strErrorClass = StringUtil.nvl(oInfo.getStrErrorClass(), "")
-			strLine = ErrorDialog.LABEL_ACT_PREFIX + str(oInfo.getNActNo()) + ErrorDialog.LABEL_ACT_SUFFIX
+			strErrorClass = StringUtil.nvl(oDtl.getStrErrorClass(), "")
+			strLine = ErrorDialog.LABEL_ACT_PREFIX + str(oDtl.getNActNo()) + ErrorDialog.LABEL_ACT_SUFFIX
 			if not StringUtil.isEmpty(strErrorClass):
 				strLine = strLine + strErrorClass + " : "
 			lstLines.append(strLine + strErrorMsg)
